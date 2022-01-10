@@ -20,6 +20,8 @@ public class TableExportToLuaHelper
     // 数据类型声明所占的最少字符数
     private static int _FIELD_DATA_TYPE_MIN_LENGTH = 30;
 
+    private static bool _noEmptyString = false;
+
     public static bool ExportTableToLua(TableInfo tableInfo, out string errorString)
     {
         StringBuilder content = new StringBuilder();
@@ -31,7 +33,8 @@ public class TableExportToLuaHelper
         int currentLevel = 1;
 
         // 判断是否设置要将主键列的值作为导出的table中的元素
-        bool isAddKeyToLuaTable = tableInfo.TableConfig != null && tableInfo.TableConfig.ContainsKey(AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE) && tableInfo.TableConfig[AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE].Count > 0 && "true".Equals(tableInfo.TableConfig[AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE][0], StringComparison.CurrentCultureIgnoreCase);
+        bool isAddKeyToLuaTable = true ; // tableInfo.TableConfig != null && tableInfo.TableConfig.ContainsKey(AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE) && tableInfo.TableConfig[AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE].Count > 0 && "true".Equals(tableInfo.TableConfig[AppValues.CONFIG_NAME_ADD_KEY_TO_LUA_TABLE][0], StringComparison.CurrentCultureIgnoreCase);
+        _noEmptyString = tableInfo.TableConfig != null && tableInfo.TableConfig.ContainsKey(AppValues.CONFIG_NAME_NO_EMPTY_STRING) && tableInfo.TableConfig[AppValues.CONFIG_NAME_NO_EMPTY_STRING].Count > 0 && "TRUE".Equals(tableInfo.TableConfig[AppValues.CONFIG_NAME_NO_EMPTY_STRING][0], StringComparison.CurrentCultureIgnoreCase);
 
         // 逐行读取表格内容生成lua table
         List<FieldInfo> allField = tableInfo.GetAllClientFieldInfo();
@@ -73,14 +76,19 @@ public class TableExportToLuaHelper
             // 将其他列依次作为value生成
             for (int column = 1; column < allField.Count; ++column)
             {
-                string oneFieldString = _GetOneField(allField[column], row, currentLevel, out errorString);
+                bool isNil = false;
+                string oneFieldString = _GetOneField(allField[column], row, currentLevel, out errorString, out isNil);
                 if (errorString != null)
                 {
                     errorString = string.Format("导出表格{0}失败，", tableInfo.TableName) + errorString;
                     return false;
                 }
                 else
-                    content.Append(oneFieldString);
+                {
+                    if (!isNil) {
+                        content.Append(oneFieldString);
+                    }
+                }
             }
 
             // 一行数据生成完毕后添加右括号结尾等
@@ -404,14 +412,17 @@ public class TableExportToLuaHelper
                 foreach (FieldInfo fieldInfo in tableValueField)
                 {
                     int rowIndex = (int)parentDict[key];
-                    string oneTableValueFieldData = _GetOneField(fieldInfo, rowIndex, currentLevel, out errorString);
+                    bool isNil = false;
+                    string oneTableValueFieldData = _GetOneField(fieldInfo, rowIndex, currentLevel, out errorString, out isNil);
                     if (errorString != null)
                     {
                         errorString = string.Format("第{0}行的字段\"{1}\"（列号：{2}）导出数据错误：{3}", rowIndex + AppValues.DATA_FIELD_DATA_START_INDEX + 1, fieldInfo.FieldName, Utils.GetExcelColumnName(fieldInfo.ColumnSeq + 1), errorString);
                         return;
                     }
                     else
+                    {
                         content.Append(oneTableValueFieldData);
+                    }
                 }
             }
             // 否则继续递归生成索引key
@@ -474,10 +485,11 @@ public class TableExportToLuaHelper
         return indentationStringBuilder.ToString();
     }
 
-    private static string _GetOneField(FieldInfo fieldInfo, int row, int level, out string errorString)
+    private static string _GetOneField(FieldInfo fieldInfo, int row, int level, out string errorString, out bool isNil)
     {
         StringBuilder content = new StringBuilder();
         errorString = null;
+        isNil = false;
 
         // 变量名前的缩进
         content.Append(_GetLuaTableIndentation(level));
@@ -555,6 +567,9 @@ public class TableExportToLuaHelper
             return null;
         }
 
+        if (value == "nil") {
+            isNil = true;
+        }
         content.Append(value);
         // 一个字段结尾加逗号并换行
         content.AppendLine(",");
@@ -574,10 +589,15 @@ public class TableExportToLuaHelper
     {
         StringBuilder content = new StringBuilder();
 
+        string str = fieldInfo.Data[row].ToString().Replace("\n", "\\n").Replace("\"", "\\\"");
+        if (_noEmptyString && str == "") {
+            return "nil";
+        }
         content.Append("\"");
         // 将单元格中填写的英文引号进行转义，使得单元格中填写123"456时，最终生成的lua文件中为xx = "123\"456"
         // 将单元格中手工按下的回车变成"\n"输出到lua文件中，单元格中输入的"\n"等原样导出到lua文件中使其能被lua转义处理。之前做法为Replace("\\", "\\\\")，即将单元格中输入内容均视为普通字符，忽略转义的处理
-        content.Append(fieldInfo.Data[row].ToString().Replace("\n", "\\n").Replace("\"", "\\\""));
+        content.Append(str);
+
         content.Append("\"");
 
         return content.ToString();
@@ -718,7 +738,8 @@ public class TableExportToLuaHelper
             // 逐个对子元素进行生成
             foreach (FieldInfo childField in fieldInfo.ChildField)
             {
-                string oneFieldString = _GetOneField(childField, row, level, out errorString);
+                bool isNil = false;
+                string oneFieldString = _GetOneField(childField, row, level, out errorString, out isNil);
                 if (errorString != null)
                     return null;
                 else

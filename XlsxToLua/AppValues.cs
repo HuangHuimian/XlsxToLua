@@ -276,6 +276,10 @@ public class AppValues
     public const string CONFIG_NAME_EXPORT_DATABASE_WRITE_NULL_FOR_EMPTY_STRING = "exportDatabaseWriteNullForEmptyString";
     // 声明某张表格导出为lua table时，是否将主键列的值作为table中的元素
     public const string CONFIG_NAME_ADD_KEY_TO_LUA_TABLE = "addKeyToLuaTable";
+
+    // 声明某张表格导出为lua table时，是否不输出空字符串
+    public const string CONFIG_NAME_NO_EMPTY_STRING = "noEmptyString";
+
     // 声明某张表格导出csv对应C#或Java文件的类名
     public const string CONFIG_NAME_EXPORT_CSV_CLASS_NAME = "exportCsvClassName";
 

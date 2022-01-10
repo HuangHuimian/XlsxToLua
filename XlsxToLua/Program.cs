@@ -749,7 +749,7 @@ public class Program
                     {
                         string paramString = exportJsonParamString.Substring(leftBracketIndex + 1, rightBracketIndex - leftBracketIndex - 1);
                         // 通过|分隔各个参数
-                        string[] paramStringList = paramString.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries);
+                        string[] paramStringList = paramString.Split(new char[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
                         // 解析各个具体参数
                         foreach (string oneParamString in paramStringList)
                         {
@@ -1147,7 +1147,7 @@ public class Program
         }
 
         Utils.Log("\n导出完毕", ConsoleColor.Green);
-        Console.ReadKey();
+        // Console.ReadKey();
         return errorLevel;
     }
 }
