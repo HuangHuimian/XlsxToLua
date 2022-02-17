@@ -548,9 +548,13 @@ public class TableExportToLuaHelper
                     break;
                 }
             case DataType.Dict:
+                {
+                    value = _GetSetValue(fieldInfo, row, level, true, out errorString);
+                    break;
+                }
             case DataType.Array:
                 {
-                    value = _GetSetValue(fieldInfo, row, level, out errorString);
+                    value = _GetSetValue(fieldInfo, row, level, false, out errorString);
                     break;
                 }
             default:
@@ -723,7 +727,7 @@ public class TableExportToLuaHelper
         return content.ToString();
     }
 
-    private static string _GetSetValue(FieldInfo fieldInfo, int row, int level, out string errorString)
+    private static string _GetSetValue(FieldInfo fieldInfo, int row, int level, bool isDict, out string errorString)
     {
         StringBuilder content = new StringBuilder();
 
@@ -743,7 +747,10 @@ public class TableExportToLuaHelper
                 if (errorString != null)
                     return null;
                 else
-                    content.Append(oneFieldString);
+                {
+                    if(!isDict|| !isNil)
+                        content.Append(oneFieldString);
+                }
             }
             // 包裹dict或array所生成table的右括号
             --level;

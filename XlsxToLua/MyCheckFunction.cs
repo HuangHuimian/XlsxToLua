@@ -56,8 +56,8 @@ public static class MyCheckFunction
         // 读取Prop表的主键id字段，用于填写道具id的值引用检查
         List<object> PROP_KEYS = null;
         const string PROP_TABLE_NAME = "Prop";
-        if (AppValues.TableInfo.ContainsKey(PROP_TABLE_NAME))
-            PROP_KEYS = AppValues.TableInfo[PROP_TABLE_NAME].GetKeyColumnFieldInfo().Data;
+        if (AppValues.ExcelTableNameAndPath.ContainsKey(PROP_TABLE_NAME))
+            PROP_KEYS = AppValues.GetTableInfo(PROP_TABLE_NAME).GetKeyColumnFieldInfo().Data;
         else
         {
             errorString = string.Format("找不到名为\"{0}\"用于配置道具属性的表格，无法进行奖励列表字段的检查\n", PROP_TABLE_NAME);

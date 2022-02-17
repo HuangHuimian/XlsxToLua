@@ -117,7 +117,7 @@ public class MapStringCheckHelper
                         return false;
                     }
                     // 检查字段是否存在
-                    FieldInfo targetFieldInfo = TableCheckHelper.GetFieldByIndexDefineString(fieldName, AppValues.TableInfo[fieldInfo.TableName], out errorString);
+                    FieldInfo targetFieldInfo = TableCheckHelper.GetFieldByIndexDefineString(fieldName, AppValues.GetTableInfo(fieldInfo.TableName), out errorString);
                     if (errorString != null)
                     {
                         errorString = string.Format("mapString型的内容检查规则声明错误，无法根据索引字符串\"{0}\"在表格{1}找到要对应的字段，错误信息为：{2}\n", fieldName, fieldInfo.TableName, errorString);

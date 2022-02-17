@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Data;
 
 /// <summary>
 /// 定义本工具中的常量以及供各个类之间读取的常量
@@ -443,11 +444,48 @@ public class AppValues
     /// 存储每张Excel表格解析成的本工具所需的数据结构（key：表名）
     /// </summary>
     public static Dictionary<string, TableInfo> TableInfo = new Dictionary<string, TableInfo>();
+    public static TableInfo GetTableInfo(string fileName) {
+        if (!TableInfo.ContainsKey(fileName)) {
+            LoadTableInfo(fileName);
+        }
+        return TableInfo[fileName];
+    }
+
+    public static void LoadTableInfo(string fileName) {
+        string filePath = ExcelTableNameAndPath[fileName];
+
+        Utils.Log(string.Format("解析表格\"{0}\"：", fileName), ConsoleColor.Green);
+        string errorString = null;
+        DataSet ds = XlsxReader.ReadXlsxFile(filePath, out errorString);
+        Utils.Log(string.Format("解析成功"));
+        if (string.IsNullOrEmpty(errorString))
+        {
+            TableInfo tableInfo = TableAnalyzeHelper.AnalyzeTable(ds.Tables[AppValues.EXCEL_DATA_SHEET_NAME], fileName, out errorString);
+            if (errorString != null)
+                Utils.LogErrorAndExit(string.Format("错误：解析{0}失败\n{1}", filePath, errorString));
+            else
+            {
+                // 如果有表格配置进行解析
+                if (ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME] != null)
+                {
+                    tableInfo.TableConfig = TableAnalyzeHelper.GetTableConfig(ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME], out errorString);
+                    if (!string.IsNullOrEmpty(errorString))
+                        Utils.LogErrorAndExit(string.Format("错误：解析表格{0}的配置失败\n{1}", fileName, errorString));
+                }
+
+                TableInfo.Add(tableInfo.TableName, tableInfo);
+            }
+        }
+        else
+            Utils.LogErrorAndExit(string.Format("错误：读取{0}失败\n{1}", filePath, errorString));
+    }
 
     /// <summary>
     /// 存储本次要导出的Excel文件名对应的文件所在路径（key：表名， value：文件所在路径）
     /// </summary>
     public static Dictionary<string, string> ExportTableNameAndPath = new Dictionary<string, string>();
+
+    public static Dictionary<string, string> ExcelTableNameAndPath = new Dictionary<string, string>();
 
     /// <summary>
     /// 存储本次忽略导出的Excel文件名

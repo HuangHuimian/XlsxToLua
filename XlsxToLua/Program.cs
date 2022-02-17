@@ -138,6 +138,9 @@ public class Program
                         existExcelFileNames.Add(fileName);
                         AppValues.ExportTableNameAndPath.Add(fileName, filePath);
                     }
+                    if (!AppValues.ExcelTableNameAndPath.ContainsKey(fileName)){
+                        AppValues.ExcelTableNameAndPath.Add(fileName, filePath);
+                    }
                 }
 
                 if (sameExcelNameInfo.Count > 0)
@@ -172,6 +175,9 @@ public class Program
 
                 existExcelFileNames.Add(fileName);
                 AppValues.ExportTableNameAndPath.Add(fileName, filePath);
+                if (!AppValues.ExcelTableNameAndPath.ContainsKey(fileName)){
+                    AppValues.ExcelTableNameAndPath.Add(fileName, filePath);
+                }
             }
         }
 
@@ -872,6 +878,17 @@ public class Program
                 Utils.LogErrorAndExit(string.Format("错误：以下表格既声明要进行导出，又声明要忽略导出：{0}，请修正配置后重试", Utils.CombineString(errorConfigTableNames, ",")));
         }
 
+        foreach (var item in AppValues.ExportTableNameAndPath)
+        {
+            string tableName = item.Key;
+            string filePath = item.Value;
+            if(!Utils.IsNewTime(filePath, tableName)) {
+                Utils.Log(string.Format("检测文件没有改动，忽略导出\"{0}\"：", tableName), ConsoleColor.Green);
+                if (!AppValues.ExceptExportTableNames.Contains(tableName))
+                    AppValues.ExceptExportTableNames.Add(tableName);
+            }
+        }
+
         // 排除本次设置为忽略导出的Excel文件
         foreach (string exceptTableName in AppValues.ExceptExportTableNames)
             AppValues.ExportTableNameAndPath.Remove(exceptTableName);
@@ -972,42 +989,42 @@ public class Program
         Utils.Log(string.Format("开始解析Excel所在目录下的所有Excel文件（{0}）：", AppValues.IsExportIncludeSubfolder == true ? "包含子目录中的Excel文件" : "不包含子目录中的Excel文件"));
         Stopwatch stopwatch = new Stopwatch();
         // 注意：不管Excel表格本次是否需要进行导出，都要进行解析，因为其他表格中可能含有对那些表格的引用检查
-        string[] excelFilePath = Directory.GetFiles(AppValues.ExcelFolderPath, "*.xlsx", AppValues.IsExportIncludeSubfolder == true ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
-        foreach (string filePath in excelFilePath)
-        {
-            string fileName = Path.GetFileNameWithoutExtension(filePath);
-            if (fileName.StartsWith(AppValues.EXCEL_TEMP_FILE_FILE_NAME_START_STRING))
-                continue;
+        // string[] excelFilePath = Directory.GetFiles(AppValues.ExcelFolderPath, "*.xlsx", AppValues.IsExportIncludeSubfolder == true ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly);
+        // foreach (string filePath in excelFilePath)
+        // {
+        //     string fileName = Path.GetFileNameWithoutExtension(filePath);
+        //     if (fileName.StartsWith(AppValues.EXCEL_TEMP_FILE_FILE_NAME_START_STRING))
+        //         continue;
 
-            Utils.Log(string.Format("解析表格\"{0}\"：", fileName), ConsoleColor.Green);
-            stopwatch.Reset();
-            stopwatch.Start();
+        //     Utils.Log(string.Format("解析表格\"{0}\"：", fileName), ConsoleColor.Green);
+        //     stopwatch.Reset();
+        //     stopwatch.Start();
 
-            string errorString = null;
-            DataSet ds = XlsxReader.ReadXlsxFile(filePath, out errorString);
-            stopwatch.Stop();
-            Utils.Log(string.Format("成功，耗时：{0}毫秒", stopwatch.ElapsedMilliseconds));
-            if (string.IsNullOrEmpty(errorString))
-            {
-                TableInfo tableInfo = TableAnalyzeHelper.AnalyzeTable(ds.Tables[AppValues.EXCEL_DATA_SHEET_NAME], fileName, out errorString);
-                if (errorString != null)
-                    Utils.LogErrorAndExit(string.Format("错误：解析{0}失败\n{1}", filePath, errorString));
-                else
-                {
-                    // 如果有表格配置进行解析
-                    if (ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME] != null)
-                    {
-                        tableInfo.TableConfig = TableAnalyzeHelper.GetTableConfig(ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME], out errorString);
-                        if (!string.IsNullOrEmpty(errorString))
-                            Utils.LogErrorAndExit(string.Format("错误：解析表格{0}的配置失败\n{1}", fileName, errorString));
-                    }
+        //     string errorString = null;
+        //     DataSet ds = XlsxReader.ReadXlsxFile(filePath, out errorString);
+        //     stopwatch.Stop();
+        //     Utils.Log(string.Format("成功，耗时：{0}毫秒", stopwatch.ElapsedMilliseconds));
+        //     if (string.IsNullOrEmpty(errorString))
+        //     {
+        //         TableInfo tableInfo = TableAnalyzeHelper.AnalyzeTable(ds.Tables[AppValues.EXCEL_DATA_SHEET_NAME], fileName, out errorString);
+        //         if (errorString != null)
+        //             Utils.LogErrorAndExit(string.Format("错误：解析{0}失败\n{1}", filePath, errorString));
+        //         else
+        //         {
+        //             // 如果有表格配置进行解析
+        //             if (ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME] != null)
+        //             {
+        //                 tableInfo.TableConfig = TableAnalyzeHelper.GetTableConfig(ds.Tables[AppValues.EXCEL_CONFIG_SHEET_NAME], out errorString);
+        //                 if (!string.IsNullOrEmpty(errorString))
+        //                     Utils.LogErrorAndExit(string.Format("错误：解析表格{0}的配置失败\n{1}", fileName, errorString));
+        //             }
 
-                    AppValues.TableInfo.Add(tableInfo.TableName, tableInfo);
-                }
-            }
-            else
-                Utils.LogErrorAndExit(string.Format("错误：读取{0}失败\n{1}", filePath, errorString));
-        }
+        //             AppValues.TableInfo.Add(tableInfo.TableName, tableInfo);
+        //         }
+        //     }
+        //     else
+        //         Utils.LogErrorAndExit(string.Format("错误：读取{0}失败\n{1}", filePath, errorString));
+        // }
 
         // 进行表格检查
         bool isTableAllRight = true;
@@ -1017,7 +1034,7 @@ public class Program
 
             foreach (string tableName in AppValues.ExportTableNameAndPath.Keys)
             {
-                TableInfo tableInfo = AppValues.TableInfo[tableName];
+                TableInfo tableInfo = AppValues.GetTableInfo(tableName);// AppValues.TableInfo[tableName];
                 string errorString = null;
                 Utils.Log(string.Format("检查表格\"{0}\"：", tableInfo.TableName), ConsoleColor.Green);
                 TableCheckHelper.CheckTable(tableInfo, out errorString);
@@ -1038,7 +1055,7 @@ public class Program
             {
                 string tableName = item.Key;
                 string filePath = item.Value;
-                TableInfo tableInfo = AppValues.TableInfo[tableName];
+                TableInfo tableInfo = AppValues.GetTableInfo(tableName);// AppValues.TableInfo[tableName];
                 string errorString = null;
                 Utils.Log(string.Format("导出表格\"{0}\"：", tableInfo.TableName), ConsoleColor.Green);
                 if (AppValues.ExportLuaFilePath != null)
@@ -1129,7 +1146,7 @@ public class Program
 
                 foreach (string tableName in AppValues.ExportTableNameAndPath.Keys)
                 {
-                    TableInfo tableInfo = AppValues.TableInfo[tableName];
+                    TableInfo tableInfo = AppValues.GetTableInfo(tableName);
                     TableExportToMySQLHelper.ExportTableToDatabase(tableInfo, out errorString);
                     if (!string.IsNullOrEmpty(errorString))
                         Utils.LogErrorAndExit(string.Format("导出失败：{0}\n导出至MySQL数据库被迫中止，请修正错误后重试\n", errorString));

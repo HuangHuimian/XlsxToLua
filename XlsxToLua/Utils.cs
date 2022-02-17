@@ -505,7 +505,17 @@ public class Utils
             return false;
         }
     }
+    public static bool IsNewTime(string excelFilePath, string fileName){
+        string exportDirectoryPath = GetExportDirectoryPath(fileName, AppValues.ExportLuaFilePath);
+        if (Directory.Exists(exportDirectoryPath) == false)
+            return true;
 
+        string savePath = Utils.CombinePath(exportDirectoryPath, fileName + ".lua");
+        FileInfo efi = new FileInfo(excelFilePath);
+        FileInfo lfi = new FileInfo(savePath);
+        bool rs = efi.LastWriteTime > lfi.LastWriteTime;
+        return rs;
+    }
     public static bool SaveCsvFile(string tableName, List<StringBuilder> rowContentList)
     {
         try

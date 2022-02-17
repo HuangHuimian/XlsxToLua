@@ -1754,7 +1754,7 @@ public class TableCheckHelper
         }
 
         bool isContainsEqual = checkRule.CheckRuleString.StartsWith(">=");
-        TableInfo tableInfo = AppValues.TableInfo[fieldInfo.TableName];
+        TableInfo tableInfo = AppValues.GetTableInfo(fieldInfo.TableName);
         string comparedFieldString = null;
         if (isContainsEqual == true)
             comparedFieldString = checkRule.CheckRuleString.Substring(2).Trim();
@@ -2136,10 +2136,10 @@ public class TableCheckHelper
                         return false;
                     }
                     if (string.IsNullOrEmpty(fieldIndexDefine))
-                        targetFieldInfo = AppValues.TableInfo[tableName].GetKeyColumnFieldInfo();
+                        targetFieldInfo = AppValues.GetTableInfo(tableName).GetKeyColumnFieldInfo();
                     else
                     {
-                        TableInfo targetTableInfo = AppValues.TableInfo[tableName];
+                        TableInfo targetTableInfo = AppValues.GetTableInfo(tableName);
                         targetFieldInfo = GetFieldByIndexDefineString(fieldIndexDefine, targetTableInfo, out errorString);
                         if (errorString != null)
                         {
